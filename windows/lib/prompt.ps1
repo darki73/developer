@@ -196,7 +196,9 @@ function Invoke-CheckboxPrompt {
         Write-Host "A " -NoNewline -ForegroundColor DarkCyan
         Write-Host "toggle all  " -NoNewline -ForegroundColor DarkGray
         Write-Host "Enter " -NoNewline -ForegroundColor DarkCyan
-        Write-Host "confirm" -ForegroundColor DarkGray
+        Write-Host "confirm  " -NoNewline -ForegroundColor DarkGray
+        Write-Host "Esc " -NoNewline -ForegroundColor DarkCyan
+        Write-Host "cancel" -ForegroundColor DarkGray
 
         # Reserve lines for items
         for ($i = 0; $i -lt $Items.Count; $i++) { Write-Host "" }
@@ -219,6 +221,12 @@ function Invoke-CheckboxPrompt {
                 $labelColor = if ($isCurrent) { "Cyan" } else { "White" }
 
                 $desc = $item.Description
+                $installedText = ""
+                if ($item.InstalledVersion) {
+                    $installedText = " $([char]0x2713) $($item.InstalledVersion)"
+                } elseif ($item.Keys -contains "InstalledVersion") {
+                    $installedText = " $([char]0x2713) installed"
+                }
                 $depText = ""
                 if ($item.DependsOn -and $item.DependsOn.Count -gt 0) {
                     $depText = " (requires: $($item.DependsOn -join ', '))"
@@ -229,12 +237,15 @@ function Invoke-CheckboxPrompt {
                 Write-Host " [" -NoNewline -ForegroundColor DarkGray
                 Write-Host $check -NoNewline -ForegroundColor $checkColor
                 Write-Host "] " -NoNewline -ForegroundColor DarkGray
-                Write-Host "$($item.Label.PadRight(14))" -NoNewline -ForegroundColor $labelColor
+                Write-Host "$($item.Label.PadRight(20))" -NoNewline -ForegroundColor $labelColor
                 Write-Host $desc -NoNewline -ForegroundColor DarkGray
+                if ($installedText) {
+                    Write-Host $installedText -NoNewline -ForegroundColor Green
+                }
                 if ($depText) {
                     Write-Host $depText -NoNewline -ForegroundColor DarkYellow
                 }
-                $written = 8 + $item.Label.PadRight(14).Length + $desc.Length + $depText.Length
+                $written = 8 + $item.Label.PadRight(20).Length + $desc.Length + $installedText.Length + $depText.Length
                 $pad = [Math]::Max(0, $lineWidth - $written - 1)
                 Write-Host (" " * $pad)
             }
@@ -253,6 +264,25 @@ function Invoke-CheckboxPrompt {
                 "A" {
                     $allChecked = ($Items | Where-Object { $_.Checked }).Count -eq $Items.Count
                     foreach ($item in $Items) { $item.Checked = -not $allChecked }
+                }
+                "Escape" {
+                    # Clear picker
+                    [Console]::SetCursorPosition(0, $startY)
+                    for ($i = 0; $i -lt $Items.Count; $i++) {
+                        Write-Host (" " * ($lineWidth - 1))
+                    }
+                    [Console]::SetCursorPosition(0, $startY)
+                    Write-Host "  Cancelled" -ForegroundColor DarkGray
+
+                    $leftover = $Items.Count - 1
+                    if ($leftover -gt 0) {
+                        for ($i = 0; $i -lt $leftover; $i++) {
+                            Write-Host (" " * ($lineWidth - 1))
+                        }
+                        [Console]::SetCursorPosition(0, [Console]::CursorTop - $leftover)
+                    }
+
+                    return $null
                 }
                 "Enter" {
                     # Clear picker

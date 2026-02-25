@@ -78,6 +78,29 @@ function Install-Vscode {
     }
 }
 
+function Detect-Vscode {
+    param([string]$BaseDir)
+    # Check BaseDir
+    $codeCmd = Join-Path $BaseDir "vscode\bin\code.cmd"
+    if (Test-Path $codeCmd) {
+        try {
+            $result = (& $codeCmd --version 2>&1 | Select-Object -First 1).Trim()
+            return @{ Installed = $true; Version = $result }
+        } catch {}
+        return @{ Installed = $true; Version = $null }
+    }
+    # Check PATH
+    $onPath = Get-Command code -ErrorAction SilentlyContinue
+    if ($onPath) {
+        try {
+            $result = (& code --version 2>&1 | Select-Object -First 1).Trim()
+            return @{ Installed = $true; Version = $result }
+        } catch {}
+        return @{ Installed = $true; Version = $null }
+    }
+    return @{ Installed = $false; Version = $null }
+}
+
 function Test-Vscode {
     param([string]$BaseDir)
     $codeCmd = Join-Path $BaseDir "vscode\bin\code.cmd"

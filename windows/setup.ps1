@@ -76,8 +76,34 @@ function Get-AvailableTools {
     return $tools
 }
 
+function Invoke-DetectTools {
+    param(
+        [System.Collections.Specialized.OrderedDictionary]$AllTools,
+        [string]$BaseDir
+    )
+    $detected = @{}
+    foreach ($name in @($AllTools.Keys)) {
+        $fnSuffix = $name.Substring(0,1).ToUpper() + $name.Substring(1)
+        $detectFn = "Detect-$fnSuffix"
+        if (Get-Command $detectFn -ErrorAction SilentlyContinue) {
+            try {
+                $detected[$name] = & $detectFn -BaseDir $BaseDir
+            } catch {
+                $detected[$name] = @{ Installed = $false; Version = $null }
+            }
+        } else {
+            $detected[$name] = @{ Installed = $false; Version = $null }
+        }
+    }
+    return $detected
+}
+
 function Resolve-InstallOrder {
-    param([System.Collections.Specialized.OrderedDictionary]$AllTools, [string[]]$SelectedTools)
+    param(
+        [System.Collections.Specialized.OrderedDictionary]$AllTools,
+        [string[]]$SelectedTools,
+        [hashtable]$DetectedTools = @{}
+    )
 
     $ordered = [System.Collections.ArrayList]::new()
     $visited = @{}
@@ -91,6 +117,10 @@ function Resolve-InstallOrder {
         if ($tool -and $tool.DependsOn) {
             foreach ($dep in $tool.DependsOn) {
                 if ($AllTools.Contains($dep)) {
+                    # Skip if already installed on system
+                    if ($DetectedTools.ContainsKey($dep) -and $DetectedTools[$dep].Installed) {
+                        continue
+                    }
                     if ($dep -notin $SelectedTools) {
                         Write-Info "Auto-enabling $dep (required by $ToolName)"
                     }
@@ -191,19 +221,34 @@ function Invoke-InteractiveSetup {
 
     # ── Step 3: Tool selection ───────────────────────────────────────────────
     Write-WizardFrame -CompletedSteps $steps
+
+    # Detect already-installed tools
+    $script:detectedTools = Invoke-DetectTools -AllTools $AvailableTools -BaseDir $baseDir
+    $detectedTools = $script:detectedTools
+
     $checkboxItems = @()
     foreach ($name in @($AvailableTools.Keys)) {
         $tool = $AvailableTools[$name]
-        $checkboxItems += @{
+        $detected = $detectedTools[$name]
+        $isInstalled = $detected -and $detected.Installed
+        $item = @{
             Key         = $name
             Label       = $name
             Description = $tool.Description
             DependsOn   = $tool.DependsOn
-            Checked     = $true
+            Checked     = -not $isInstalled
         }
+        if ($isInstalled) {
+            $item["InstalledVersion"] = $detected.Version
+        }
+        $checkboxItems += $item
     }
 
     $checkboxItems = Invoke-CheckboxPrompt -Title "Select tools to install:" -Items $checkboxItems
+    if ($null -eq $checkboxItems) {
+        Write-Host ""
+        exit 0
+    }
     $selectedNames = @($checkboxItems | Where-Object { $_.Checked } | ForEach-Object { $_.Key })
     [void]$steps.Add(@{ Label = "Tools"; Value = "$($selectedNames.Count) selected: $($selectedNames -join ', ')" })
 
@@ -295,8 +340,13 @@ if ($enabledTools.Count -eq 0) {
     exit 0
 }
 
-# Resolve install order (respects dependencies)
-$installOrder = Resolve-InstallOrder -AllTools $availableTools -SelectedTools $enabledTools
+# Detect already-installed tools (for dependency resolution in both modes)
+if (-not $script:detectedTools) {
+    $script:detectedTools = Invoke-DetectTools -AllTools $availableTools -BaseDir $baseDir
+}
+
+# Resolve install order (respects dependencies, skips installed deps)
+$installOrder = Resolve-InstallOrder -AllTools $availableTools -SelectedTools $enabledTools -DetectedTools $script:detectedTools
 
 # Show summary and ask for confirmation
 if (-not $ConfigFile) {

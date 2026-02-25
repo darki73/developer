@@ -65,6 +65,29 @@ function Install-Uv {
     return $false
 }
 
+function Detect-Uv {
+    param([string]$BaseDir)
+    # Check BaseDir
+    $uvExe = Join-Path $BaseDir "uv\uv.exe"
+    if (Test-Path $uvExe) {
+        try {
+            $result = (& $uvExe --version 2>&1) -replace "^uv\s+", "" -replace "\s+\(.*$", ""
+            return @{ Installed = $true; Version = $result.Trim() }
+        } catch {}
+        return @{ Installed = $true; Version = $null }
+    }
+    # Check PATH
+    $onPath = Get-Command uv -ErrorAction SilentlyContinue
+    if ($onPath) {
+        try {
+            $result = (& uv --version 2>&1) -replace "^uv\s+", "" -replace "\s+\(.*$", ""
+            return @{ Installed = $true; Version = $result.Trim() }
+        } catch {}
+        return @{ Installed = $true; Version = $null }
+    }
+    return @{ Installed = $false; Version = $null }
+}
+
 function Test-Uv {
     param([string]$BaseDir)
     $uvExe = Join-Path $BaseDir "uv\uv.exe"

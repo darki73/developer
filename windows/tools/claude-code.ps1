@@ -293,6 +293,32 @@ function Install-Claude-code {
     return $true
 }
 
+function Detect-Claude-code {
+    param([string]$BaseDir)
+    # Check known install path
+    $installPath = Join-Path $env:USERPROFILE ".local\bin\claude.exe"
+    if (Test-Path $installPath) {
+        $size = (Get-Item $installPath).Length
+        if ($size -ge 1MB) {
+            try {
+                $result = ((& $installPath --version 2>&1) -replace "\s+\(.*$", "").Trim()
+                return @{ Installed = $true; Version = $result }
+            } catch {}
+            return @{ Installed = $true; Version = $null }
+        }
+    }
+    # Check PATH
+    $onPath = Get-Command claude -ErrorAction SilentlyContinue
+    if ($onPath) {
+        try {
+            $result = ((& claude --version 2>&1) -replace "\s+\(.*$", "").Trim()
+            return @{ Installed = $true; Version = $result }
+        } catch {}
+        return @{ Installed = $true; Version = $null }
+    }
+    return @{ Installed = $false; Version = $null }
+}
+
 function Test-Claude-code {
     param([string]$BaseDir)
 

@@ -54,6 +54,20 @@ function Install-Node {
     }
 }
 
+function Detect-Node {
+    param([string]$BaseDir)
+    # Check PATH (node is managed by pnpm, no fixed BaseDir path)
+    $onPath = Get-Command node -ErrorAction SilentlyContinue
+    if ($onPath) {
+        try {
+            $result = (& node --version 2>&1) -replace "^v", ""
+            return @{ Installed = $true; Version = $result.Trim() }
+        } catch {}
+        return @{ Installed = $true; Version = $null }
+    }
+    return @{ Installed = $false; Version = $null }
+}
+
 function Test-Node {
     param([string]$BaseDir)
     try {

@@ -95,6 +95,31 @@ function Install-Go {
     }
 }
 
+function Detect-Go {
+    param([string]$BaseDir)
+    # Check BaseDir
+    $goExe = Join-Path $BaseDir "go\root\bin\go.exe"
+    if (Test-Path $goExe) {
+        try {
+            $result = & $goExe version 2>&1
+            if ($result -match "go(\d+\.\d+[\.\d]*)") { $ver = $Matches[1] } else { $ver = $null }
+            return @{ Installed = $true; Version = $ver }
+        } catch {}
+        return @{ Installed = $true; Version = $null }
+    }
+    # Check PATH
+    $onPath = Get-Command go -ErrorAction SilentlyContinue
+    if ($onPath) {
+        try {
+            $result = & go version 2>&1
+            if ($result -match "go(\d+\.\d+[\.\d]*)") { $ver = $Matches[1] } else { $ver = $null }
+            return @{ Installed = $true; Version = $ver }
+        } catch {}
+        return @{ Installed = $true; Version = $null }
+    }
+    return @{ Installed = $false; Version = $null }
+}
+
 function Test-Go {
     param([string]$BaseDir)
     $goExe = Join-Path $BaseDir "go\root\bin\go.exe"

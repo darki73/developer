@@ -116,6 +116,31 @@ function Install-Git {
     }
 }
 
+function Detect-Git {
+    param([string]$BaseDir)
+    # Check BaseDir
+    $gitExe = Join-Path $BaseDir "git\cmd\git.exe"
+    if (Test-Path $gitExe) {
+        try {
+            $result = & $gitExe --version 2>&1
+            if ($result -match "(\d+\.\d+\.\d+)") { $ver = $Matches[1] } else { $ver = $null }
+            return @{ Installed = $true; Version = $ver }
+        } catch {}
+        return @{ Installed = $true; Version = $null }
+    }
+    # Check PATH
+    $onPath = Get-Command git -ErrorAction SilentlyContinue
+    if ($onPath) {
+        try {
+            $result = & git --version 2>&1
+            if ($result -match "(\d+\.\d+\.\d+)") { $ver = $Matches[1] } else { $ver = $null }
+            return @{ Installed = $true; Version = $ver }
+        } catch {}
+        return @{ Installed = $true; Version = $null }
+    }
+    return @{ Installed = $false; Version = $null }
+}
+
 function Test-Git {
     param([string]$BaseDir)
     $gitExe = Join-Path $BaseDir "git\cmd\git.exe"

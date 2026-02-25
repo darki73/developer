@@ -216,6 +216,21 @@ function Install-Jetbrains-toolbox {
     return $true
 }
 
+function Detect-Jetbrains-toolbox {
+    param([string]$BaseDir)
+    # Check known install path
+    $toolboxExe = Join-Path $env:LOCALAPPDATA "JetBrains\Toolbox\bin\jetbrains-toolbox.exe"
+    if (Test-Path $toolboxExe) {
+        return @{ Installed = $true; Version = $null }
+    }
+    # Check PATH
+    $onPath = Get-Command jetbrains-toolbox -ErrorAction SilentlyContinue
+    if ($onPath) {
+        return @{ Installed = $true; Version = $null }
+    }
+    return @{ Installed = $false; Version = $null }
+}
+
 function Test-Jetbrains-toolbox {
     param([string]$BaseDir)
 

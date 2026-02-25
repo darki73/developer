@@ -54,6 +54,28 @@ function Install-Python {
     }
 }
 
+function Detect-Python {
+    param([string]$BaseDir)
+    # Check via uv first (managed install)
+    $uvExe = Join-Path $BaseDir "uv\uv.exe"
+    if (Test-Path $uvExe) {
+        try {
+            $result = (& $uvExe run python --version 2>&1) -replace "^Python\s+", ""
+            return @{ Installed = $true; Version = $result.Trim() }
+        } catch {}
+    }
+    # Check PATH
+    $onPath = Get-Command python -ErrorAction SilentlyContinue
+    if ($onPath) {
+        try {
+            $result = (& python --version 2>&1) -replace "^Python\s+", ""
+            return @{ Installed = $true; Version = $result.Trim() }
+        } catch {}
+        return @{ Installed = $true; Version = $null }
+    }
+    return @{ Installed = $false; Version = $null }
+}
+
 function Test-Python {
     param([string]$BaseDir)
     $uvExe = Join-Path $BaseDir "uv\uv.exe"
