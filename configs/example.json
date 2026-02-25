@@ -36,6 +36,10 @@
         "claude-code": {
             "enabled": true,
             "version": "latest"
+        },
+        "jetbrains-toolbox": {
+            "enabled": false,
+            "version": "latest"
         }
     }
 }

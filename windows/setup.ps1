@@ -258,7 +258,7 @@ if ($ListTools) {
     foreach ($kv in $availableTools.GetEnumerator()) {
         $tool = $kv.Value
         $deps = if ($tool.DependsOn.Count -gt 0) { " (requires: $($tool.DependsOn -join ', '))" } else { "" }
-        $line = "  $($tool.Name.PadRight(14))$($tool.Description)$deps"
+        $line = "  $($tool.Name.PadRight(20))$($tool.Description)$deps"
         Write-TuiTextLine -Text $line -InnerWidth $innerW -Color Gray
     }
 
@@ -357,7 +357,7 @@ if ($useTui) {
         }
 
         # Some tools accept extra params
-        if ($toolName -in @("go", "pnpm", "vscode", "git")) {
+        if ($toolName -in @("go", "pnpm", "vscode", "git", "jetbrains-toolbox")) {
             $params["Arch"] = $arch
         }
         if ($toolName -eq "git") {
@@ -428,7 +428,7 @@ if ($useTui) {
             BaseDir          = $baseDir
             RequestedVersion = $version
         }
-        if ($toolName -in @("go", "pnpm", "vscode", "git")) {
+        if ($toolName -in @("go", "pnpm", "vscode", "git", "jetbrains-toolbox")) {
             $params["Arch"] = $arch
         }
         if ($toolName -eq "git") {
@@ -485,9 +485,10 @@ foreach ($toolName in $installOrder) {
             "vscode" { Join-Path $baseDir "vscode" }
             "git"    { Join-Path $baseDir "git" }
             "claude-code" { "$env:USERPROFILE\.local\bin" }
+            "jetbrains-toolbox" { "$env:LOCALAPPDATA\JetBrains\Toolbox" }
             default  { $baseDir }
         }
-        Write-Host "    $($toolName.PadRight(12)) → $path" -ForegroundColor Gray
+        Write-Host "    $($toolName.PadRight(20)) → $path" -ForegroundColor Gray
     }
 }
 Write-Host ""
