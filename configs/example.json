@@ -1,0 +1,41 @@
+{
+    "_comment": "Developer environment configuration. See https://github.com/darki73/developer",
+
+    "install_directory": "C:\\Dev",
+    "architecture": "amd64",
+
+    "tools": {
+        "uv": {
+            "enabled": true,
+            "version": "latest"
+        },
+        "python": {
+            "enabled": true,
+            "version": "3.12"
+        },
+        "pnpm": {
+            "enabled": true,
+            "version": "latest"
+        },
+        "node": {
+            "enabled": true,
+            "version": "24"
+        },
+        "go": {
+            "enabled": true,
+            "version": "latest"
+        },
+        "vscode": {
+            "enabled": true,
+            "version": "latest"
+        },
+        "git": {
+            "enabled": true,
+            "version": "latest"
+        },
+        "claude-code": {
+            "enabled": true,
+            "version": "latest"
+        }
+    }
+}

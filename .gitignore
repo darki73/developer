@@ -1,0 +1,21 @@
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# PowerShell
+*.psm1.bak
+
+# Generated configs (user-specific)
+developer-config.json
+
+# Temp / build artifacts
+*.tmp
+*.log
