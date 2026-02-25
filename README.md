@@ -32,6 +32,7 @@ cd developer
 - **Config file mode** — save your setup once, replay it on any machine
 - **Single directory** — no C: drive pollution, pick any drive/folder
 - **Dependency-aware** — tools install in the correct order automatically
+- **Detects existing installs** — shows installed versions, skips already-installed dependencies
 - **Re-runnable** — safe to run again without breaking existing installs
 
 ## Available Tools
@@ -46,6 +47,7 @@ cd developer
 | **vscode** | Visual Studio Code (with context menus & file associations) | Installer |
 | **git** | Git for Windows (auto-sets VS Code as editor) | GitHub Releases |
 | **claude-code** | Claude Code — AI coding assistant (Anthropic) | GCS binary |
+| **jetbrains-toolbox** | JetBrains Toolbox — IDE manager | JetBrains API |
 
 List available tools:
 
@@ -75,7 +77,8 @@ The interactive mode offers to save your choices as a JSON config for future use
         "go":          { "enabled": true, "version": "latest" },
         "vscode":      { "enabled": true, "version": "latest" },
         "git":         { "enabled": true, "version": "latest" },
-        "claude-code": { "enabled": true, "version": "latest" }
+        "claude-code": { "enabled": true, "version": "latest" },
+        "jetbrains-toolbox": { "enabled": false, "version": "latest" }
     }
 }
 ```
@@ -108,7 +111,8 @@ developer/
         ├── go.ps1
         ├── vscode.ps1
         ├── git.ps1
-        └── claude-code.ps1
+        ├── claude-code.ps1
+        └── jetbrains-toolbox.ps1
 ```
 
 ## Adding a New Tool
@@ -123,6 +127,12 @@ function Get-RustMetadata {
         Url         = "https://www.rust-lang.org/"
         DependsOn   = @()  # optional: list tool names this depends on
     }
+}
+
+function Detect-Rust {
+    param([string]$BaseDir)
+    # Check BaseDir, then PATH — return installed status + version
+    # Return @{ Installed = $true/$false; Version = "x.y.z" or $null }
 }
 
 function Install-Rust {

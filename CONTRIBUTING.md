@@ -21,6 +21,13 @@ function Get-<Toolname>Metadata {
     }
 }
 
+# Detect — checks if already installed (shown on selection screen)
+function Detect-<Toolname> {
+    param([string]$BaseDir)
+    # Check $BaseDir path first, then system PATH
+    # Return @{ Installed = $true/$false; Version = "x.y.z" or $null }
+}
+
 # Install — does the actual work
 function Install-<Toolname> {
     param(
@@ -45,7 +52,7 @@ The orchestrator auto-discovers modules in the `tools/` directory. No other file
 
 ### Conventions
 
-- **Function naming**: `Get-<Name>Metadata`, `Install-<Name>`, `Test-<Name>` — capitalize the first letter
+- **Function naming**: `Get-<Name>Metadata`, `Detect-<Name>`, `Install-<Name>`, `Test-<Name>` — capitalize the first letter
 - **Return booleans**: install functions return `$true` / `$false`
 - **Be idempotent**: running twice should not break anything
 - **Custom directory**: install under `$BaseDir\<toolname>`, not a hardcoded path
@@ -88,7 +95,7 @@ If your tool depends on another (e.g., `node` depends on `pnpm`), add it to `Dep
 DependsOn = @("pnpm")
 ```
 
-The orchestrator resolves the dependency graph and installs in the correct order. Missing dependencies are auto-enabled with a notice.
+The orchestrator resolves the dependency graph and installs in the correct order. Missing dependencies are auto-enabled with a notice, unless they are already installed on the system (detected via `Detect-*` functions).
 
 If your tool needs to know about other tools that were installed (like `git` checking for `vscode`), add an `$InstalledTools` hashtable parameter to your install function.
 
@@ -107,7 +114,28 @@ function Install-<Toolname> {
 }
 ```
 
-The orchestrator passes this automatically for tools listed in its arch-aware set. To register your tool, add its name to the `$toolName -in @("go", "pnpm", "vscode")` check in `setup.ps1`.
+The orchestrator passes this automatically for tools listed in its arch-aware set. To register your tool, add its name to the `$toolName -in @("go", "pnpm", "vscode", "git", "jetbrains-toolbox")` check in `setup.ps1`.
+
+### Detection Function
+
+Every tool should include a `Detect-<Name>` function that checks if the tool is already installed. The selection screen uses this to show installed versions and default installed tools to unchecked.
+
+```powershell
+function Detect-<Toolname> {
+    param([string]$BaseDir)
+    # 1. Check the managed install path ($BaseDir\<toolname>\...)
+    # 2. Fall back to system PATH (Get-Command <toolname>)
+    # 3. Extract version via --version flag
+    return @{ Installed = $true; Version = "1.2.3" }
+    # or: @{ Installed = $false; Version = $null }
+}
+```
+
+Guidelines:
+- Check `$BaseDir` paths first, then fall back to `Get-Command` for system-wide installs
+- Keep version strings clean — strip build metadata, tool name prefixes, etc.
+- Wrap version extraction in `try/catch` — return `$null` for version if it can't be determined
+- The function is called before the tool selection screen, so it should be fast (no network calls)
 
 ## Adding a New Platform
 
