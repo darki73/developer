@@ -431,7 +431,7 @@ if ($useTui) {
         }
 
         # Some tools accept extra params
-        if ($toolName -in @("go", "pnpm", "vscode", "git", "jetbrains-toolbox")) {
+        if ($toolName -in @("go", "pnpm", "vscode", "git", "jetbrains-toolbox", "rust")) {
             $params["Arch"] = $arch
         }
         if ($toolName -eq "git") {
@@ -502,7 +502,7 @@ if ($useTui) {
             BaseDir          = $baseDir
             RequestedVersion = $version
         }
-        if ($toolName -in @("go", "pnpm", "vscode", "git", "jetbrains-toolbox")) {
+        if ($toolName -in @("go", "pnpm", "vscode", "git", "jetbrains-toolbox", "rust")) {
             $params["Arch"] = $arch
         }
         if ($toolName -eq "git") {
@@ -560,6 +560,7 @@ foreach ($toolName in $installOrder) {
             "git"    { Join-Path $baseDir "git" }
             "claude-code" { "$env:USERPROFILE\.local\bin" }
             "jetbrains-toolbox" { "$env:LOCALAPPDATA\JetBrains\Toolbox" }
+            "rust"   { Join-Path $baseDir "rust" }
             default  { $baseDir }
         }
         Write-Host "    $($toolName.PadRight(20)) → $path" -ForegroundColor Gray

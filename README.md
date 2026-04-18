@@ -44,6 +44,7 @@ cd developer
 | **pnpm** | Fast, disk-efficient Node.js package manager | GitHub Releases |
 | **node** | Node.js runtime (installed via pnpm) | nodejs.org |
 | **go** | Go programming language | go.dev/dl API |
+| **rust** | Rust toolchain (rustup, cargo, rustc) | rustup-init + GitHub Releases |
 | **vscode** | Visual Studio Code (with context menus & file associations) | Installer |
 | **git** | Git for Windows (auto-sets VS Code as editor) | GitHub Releases |
 | **claude-code** | Claude Code — AI coding assistant (Anthropic) | GCS binary |
@@ -77,6 +78,7 @@ The interactive mode offers to save your choices as a JSON config for future use
         "go":          { "enabled": true, "version": "latest" },
         "vscode":      { "enabled": true, "version": "latest" },
         "git":         { "enabled": true, "version": "latest" },
+        "rust":        { "enabled": true, "version": "latest" },
         "claude-code": { "enabled": true, "version": "latest" },
         "jetbrains-toolbox": { "enabled": false, "version": "latest" }
     }
@@ -111,6 +113,7 @@ developer/
         ├── go.ps1
         ├── vscode.ps1
         ├── git.ps1
+        ├── rust.ps1
         ├── claude-code.ps1
         └── jetbrains-toolbox.ps1
 ```

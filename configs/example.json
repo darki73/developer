@@ -25,6 +25,10 @@
             "enabled": true,
             "version": "latest"
         },
+        "rust": {
+            "enabled": true,
+            "version": "latest"
+        },
         "vscode": {
             "enabled": true,
             "version": "latest"
