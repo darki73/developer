@@ -1,4 +1,4 @@
-# windows/lib/tui.ps1
+﻿# windows/lib/tui.ps1
 # Full-screen TUI dashboard and shared frame rendering primitives
 
 $script:TuiState = $null
@@ -342,10 +342,11 @@ function Invoke-Download {
         return
     }
 
-    # Ensure TLS 1.2 is available
-    if ([Net.ServicePointManager]::SecurityProtocol -notmatch 'Tls12') {
+    # Ensure TLS 1.2 is available — save original so we can restore in finally
+    $savedSecProtocol = [Net.ServicePointManager]::SecurityProtocol
+    if ($savedSecProtocol -notmatch 'Tls12') {
         [Net.ServicePointManager]::SecurityProtocol = `
-            [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+            $savedSecProtocol -bor [Net.SecurityProtocolType]::Tls12
     }
 
     # Try HEAD request to get file size
@@ -429,6 +430,9 @@ function Invoke-Download {
         if ($fileStream)     { $fileStream.Close();     $fileStream.Dispose() }
         if ($responseStream) { $responseStream.Close();  $responseStream.Dispose() }
         if ($response)       { $response.Close();        $response.Dispose() }
+
+        # Restore SecurityProtocol so we don't leak our bitwise-or into the rest of the process
+        [Net.ServicePointManager]::SecurityProtocol = $savedSecProtocol
 
         # Clear download state
         if ($script:TuiState) {

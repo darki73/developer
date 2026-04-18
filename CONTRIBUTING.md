@@ -52,7 +52,7 @@ The orchestrator auto-discovers modules in the `tools/` directory. No other file
 
 ### Conventions
 
-- **Function naming**: `Get-<Name>Metadata`, `Detect-<Name>`, `Install-<Name>`, `Test-<Name>` — capitalize the first letter
+- **Function naming**: `Get-<Name>Metadata`, `Detect-<Name>`, `Install-<Name>`, `Test-<Name>` — only the first letter of `<Name>` is capitalised; everything after it (including hyphens) is preserved verbatim. The orchestrator resolves the function name with `Name.Substring(0,1).ToUpper() + Name.Substring(1)`, so file `claude-code.ps1` must export `Install-Claude-code` (not `Install-ClaudeCode`).
 - **Return booleans**: install functions return `$true` / `$false`
 - **Be idempotent**: running twice should not break anything
 - **Custom directory**: install under `$BaseDir\<toolname>`, not a hardcoded path

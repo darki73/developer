@@ -1,4 +1,4 @@
-# windows/lib/output.ps1
+﻿# windows/lib/output.ps1
 # Shared output formatting helpers
 
 function Write-Step {

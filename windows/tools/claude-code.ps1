@@ -1,4 +1,4 @@
-# windows/tools/claude-code.ps1
+﻿# windows/tools/claude-code.ps1
 # Installs Claude Code — AI-powered coding assistant by Anthropic
 #
 # Reverse-engineered from the official install.ps1 / install.sh
@@ -295,28 +295,15 @@ function Install-Claude-code {
 
 function Detect-Claude-code {
     param([string]$BaseDir)
-    # Check known install path
+    # Treat <1MB as not-installed — the known installer bug leaves a 0-byte file there
     $installPath = Join-Path $env:USERPROFILE ".local\bin\claude.exe"
-    if (Test-Path $installPath) {
-        $size = (Get-Item $installPath).Length
-        if ($size -ge 1MB) {
-            try {
-                $result = ((& $installPath --version 2>&1) -replace "\s+\(.*$", "").Trim()
-                return @{ Installed = $true; Version = $result }
-            } catch {}
-            return @{ Installed = $true; Version = $null }
-        }
+    if ((Test-Path $installPath) -and (Get-Item $installPath).Length -lt 1MB) {
+        $installPath = $null
     }
-    # Check PATH
-    $onPath = Get-Command claude -ErrorAction SilentlyContinue
-    if ($onPath) {
-        try {
-            $result = ((& claude --version 2>&1) -replace "\s+\(.*$", "").Trim()
-            return @{ Installed = $true; Version = $result }
-        } catch {}
-        return @{ Installed = $true; Version = $null }
-    }
-    return @{ Installed = $false; Version = $null }
+    Resolve-InstalledTool `
+        -BasePath $installPath `
+        -CommandName "claude" `
+        -GetVersion { param($exe) (& $exe --version 2>&1) -replace "\s+\(.*$", "" }
 }
 
 function Test-Claude-code {

@@ -1,4 +1,4 @@
-# windows/tools/node.ps1
+﻿# windows/tools/node.ps1
 # Installs Node.js via pnpm
 
 function Get-NodeMetadata {
@@ -56,16 +56,10 @@ function Install-Node {
 
 function Detect-Node {
     param([string]$BaseDir)
-    # Check PATH (node is managed by pnpm, no fixed BaseDir path)
-    $onPath = Get-Command node -ErrorAction SilentlyContinue
-    if ($onPath) {
-        try {
-            $result = (& node --version 2>&1) -replace "^v", ""
-            return @{ Installed = $true; Version = $result.Trim() }
-        } catch {}
-        return @{ Installed = $true; Version = $null }
-    }
-    return @{ Installed = $false; Version = $null }
+    # node is managed by pnpm, no fixed BaseDir path — PATH lookup only
+    Resolve-InstalledTool `
+        -CommandName "node" `
+        -GetVersion { param($exe) (& $exe --version 2>&1) -replace "^v", "" }
 }
 
 function Test-Node {

@@ -1,4 +1,4 @@
-# windows/tools/python.ps1
+﻿# windows/tools/python.ps1
 # Installs Python via uv
 
 function Get-PythonMetadata {
@@ -56,7 +56,7 @@ function Install-Python {
 
 function Detect-Python {
     param([string]$BaseDir)
-    # Check via uv first (managed install)
+    # Special case — python is managed by uv when present, otherwise check PATH directly
     $uvExe = Join-Path $BaseDir "uv\uv.exe"
     if (Test-Path $uvExe) {
         try {
@@ -64,16 +64,9 @@ function Detect-Python {
             return @{ Installed = $true; Version = $result.Trim() }
         } catch {}
     }
-    # Check PATH
-    $onPath = Get-Command python -ErrorAction SilentlyContinue
-    if ($onPath) {
-        try {
-            $result = (& python --version 2>&1) -replace "^Python\s+", ""
-            return @{ Installed = $true; Version = $result.Trim() }
-        } catch {}
-        return @{ Installed = $true; Version = $null }
-    }
-    return @{ Installed = $false; Version = $null }
+    Resolve-InstalledTool `
+        -CommandName "python" `
+        -GetVersion { param($exe) (& $exe --version 2>&1) -replace "^Python\s+", "" }
 }
 
 function Test-Python {

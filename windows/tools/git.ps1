@@ -1,4 +1,4 @@
-# windows/tools/git.ps1
+﻿# windows/tools/git.ps1
 # Installs Git for Windows with full shell integration
 
 function Get-GitMetadata {
@@ -118,27 +118,14 @@ function Install-Git {
 
 function Detect-Git {
     param([string]$BaseDir)
-    # Check BaseDir
-    $gitExe = Join-Path $BaseDir "git\cmd\git.exe"
-    if (Test-Path $gitExe) {
-        try {
-            $result = & $gitExe --version 2>&1
-            if ($result -match "(\d+\.\d+\.\d+)") { $ver = $Matches[1] } else { $ver = $null }
-            return @{ Installed = $true; Version = $ver }
-        } catch {}
-        return @{ Installed = $true; Version = $null }
-    }
-    # Check PATH
-    $onPath = Get-Command git -ErrorAction SilentlyContinue
-    if ($onPath) {
-        try {
-            $result = & git --version 2>&1
-            if ($result -match "(\d+\.\d+\.\d+)") { $ver = $Matches[1] } else { $ver = $null }
-            return @{ Installed = $true; Version = $ver }
-        } catch {}
-        return @{ Installed = $true; Version = $null }
-    }
-    return @{ Installed = $false; Version = $null }
+    Resolve-InstalledTool `
+        -BasePath (Join-Path $BaseDir "git\cmd\git.exe") `
+        -CommandName "git" `
+        -GetVersion {
+            param($exe)
+            $out = & $exe --version 2>&1
+            if ($out -match "(\d+\.\d+\.\d+)") { $Matches[1] } else { $null }
+        }
 }
 
 function Test-Git {

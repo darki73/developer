@@ -1,4 +1,4 @@
-# windows/lib/versions.ps1
+﻿# windows/lib/versions.ps1
 # Shared version fetching and interactive selection
 
 function Get-GitHubReleaseVersions {
@@ -10,9 +10,25 @@ function Get-GitHubReleaseVersions {
     Write-Info "Fetching versions from github.com/$Repo..."
     try {
         $headers = @{ "Accept" = "application/vnd.github.v3+json" }
-        $releases = Invoke-RestMethod `
+        # Allow GITHUB_TOKEN to lift the 60/hr anonymous limit
+        if ($env:GITHUB_TOKEN) {
+            $headers["Authorization"] = "Bearer $env:GITHUB_TOKEN"
+        }
+        $resp = Invoke-WebRequest `
             -Uri "https://api.github.com/repos/$Repo/releases?per_page=$Count" `
             -Headers $headers -UseBasicParsing
+
+        # PS 5.1's Invoke-WebRequest returns header values as string[] — take the first
+        $remainingRaw = $resp.Headers["X-RateLimit-Remaining"]
+        if ($remainingRaw) {
+            $remaining = @($remainingRaw)[0]
+            $remainingInt = 0
+            if ([int]::TryParse($remaining, [ref]$remainingInt) -and $remainingInt -lt 5) {
+                Write-Info "GitHub API rate limit: $remainingInt requests remaining (set GITHUB_TOKEN to raise the cap)"
+            }
+        }
+
+        $releases = $resp.Content | ConvertFrom-Json
 
         $filtered = $releases
         if (-not $IncludePrerelease) {
@@ -22,7 +38,12 @@ function Get-GitHubReleaseVersions {
         return @($filtered | ForEach-Object { $_.tag_name -replace "^v", "" })
     }
     catch {
-        Write-Err "Failed to fetch versions from $Repo`: $_"
+        $resp = $_.Exception.Response
+        if ($resp -and ($resp.StatusCode.value__ -eq 403 -or $resp.StatusCode.value__ -eq 429)) {
+            Write-Err "GitHub API rate limit exceeded for $Repo. Set GITHUB_TOKEN env var (a classic PAT, no scopes needed) to raise the cap from 60/hr to 5000/hr."
+        } else {
+            Write-Err "Failed to fetch versions from $Repo`: $_"
+        }
         return @()
     }
 }

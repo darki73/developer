@@ -1,4 +1,4 @@
-# windows/tools/uv.ps1
+﻿# windows/tools/uv.ps1
 # Installs uv — Python package and project manager by Astral
 
 function Get-UvMetadata {
@@ -37,19 +37,71 @@ function Install-Uv {
 
     if (-not $version) { return $false }
 
-    # Must set in-process for the installer to pick it up
     $env:UV_INSTALL_DIR = $installDir
     $env:UV_NO_MODIFY_PATH = "1"
 
-    $installerUrl = "https://astral.sh/uv/$version/install.ps1"
-    Write-Info "Downloading uv $version installer..."
+    # Resolve archive name for this architecture
+    $uvArch = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") {
+        "aarch64-pc-windows-msvc"
+    } else {
+        "x86_64-pc-windows-msvc"
+    }
+    $archiveName = "uv-$uvArch.zip"
+    $baseUrl     = "https://github.com/astral-sh/uv/releases/download/$version"
+    $archiveUrl  = "$baseUrl/$archiveName"
+    $sha256Url   = "$archiveUrl.sha256"
+
+    $tempDir     = Join-Path $env:TEMP "uv-install-$([Guid]::NewGuid().ToString('N'))"
+    Ensure-Dir $tempDir
+    $archivePath = Join-Path $tempDir $archiveName
 
     try {
-        Invoke-Expression "& { $(Invoke-RestMethod $installerUrl) }"
+        Write-Info "Downloading uv $version ($uvArch)..."
+        try {
+            Invoke-Download -Uri $archiveUrl -OutFile $archivePath
+        }
+        catch {
+            Write-Err "Failed to download uv archive: $_"
+            return $false
+        }
+
+        # SHA256 verification — required, not best-effort
+        $expectedSha = $null
+        try {
+            $shaContent = (Invoke-RestMethod -Uri $sha256Url -UseBasicParsing).ToString().Trim()
+            # Format is "<hash>  <filename>"
+            $expectedSha = ($shaContent -split '\s+')[0].ToLower()
+        }
+        catch {
+            Write-Err "Failed to fetch SHA256 from $sha256Url`: $_"
+            return $false
+        }
+
+        if (-not $expectedSha -or $expectedSha.Length -ne 64) {
+            Write-Err "Invalid SHA256 from upstream: '$expectedSha'"
+            return $false
+        }
+
+        $actualSha = (Get-FileHash -Path $archivePath -Algorithm SHA256).Hash.ToLower()
+        if ($actualSha -ne $expectedSha) {
+            Write-Err "Checksum mismatch for $archiveName"
+            Write-Err "  Expected: $expectedSha"
+            Write-Err "  Actual:   $actualSha"
+            return $false
+        }
+        Write-Success "SHA256 verified"
+
+        # Extract to install dir
+        try {
+            Expand-Archive -Path $archivePath -DestinationPath $installDir -Force
+        }
+        catch {
+            Write-Err "Failed to extract uv archive: $_"
+            return $false
+        }
     }
-    catch {
-        Write-Err "Failed to download/run uv installer: $_"
-        return $false
+    finally {
+        Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue
     }
 
     Add-ToUserPath @($installDir)
@@ -67,25 +119,10 @@ function Install-Uv {
 
 function Detect-Uv {
     param([string]$BaseDir)
-    # Check BaseDir
-    $uvExe = Join-Path $BaseDir "uv\uv.exe"
-    if (Test-Path $uvExe) {
-        try {
-            $result = (& $uvExe --version 2>&1) -replace "^uv\s+", "" -replace "\s+\(.*$", ""
-            return @{ Installed = $true; Version = $result.Trim() }
-        } catch {}
-        return @{ Installed = $true; Version = $null }
-    }
-    # Check PATH
-    $onPath = Get-Command uv -ErrorAction SilentlyContinue
-    if ($onPath) {
-        try {
-            $result = (& uv --version 2>&1) -replace "^uv\s+", "" -replace "\s+\(.*$", ""
-            return @{ Installed = $true; Version = $result.Trim() }
-        } catch {}
-        return @{ Installed = $true; Version = $null }
-    }
-    return @{ Installed = $false; Version = $null }
+    Resolve-InstalledTool `
+        -BasePath (Join-Path $BaseDir "uv\uv.exe") `
+        -CommandName "uv" `
+        -GetVersion { param($exe) (& $exe --version 2>&1) -replace "^uv\s+", "" -replace "\s+\(.*$", "" }
 }
 
 function Test-Uv {

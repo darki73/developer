@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Developer environment bootstrapper.
@@ -56,6 +56,16 @@ try {
         $zipUrl = "https://github.com/darki73/developer/archive/refs/heads/main.zip"
         $zipPath = Join-Path $env:TEMP "developer-setup.zip"
         Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing
+
+        # Sanity check — a real zip is well over 10 KB; smaller probably means
+        # an HTML error page from GitHub got saved with a .zip extension.
+        $zipSize = (Get-Item $zipPath).Length
+        if ($zipSize -lt 10KB) {
+            Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
+            Write-Host "Downloaded zip is only $zipSize bytes — likely an error page, not the repo." -ForegroundColor Red
+            exit 1
+        }
+
         Expand-Archive $zipPath -DestinationPath $tempDir -Force
         Remove-Item $zipPath -Force
 
@@ -66,13 +76,23 @@ try {
         }
     }
 
-    $setupScript = Join-Path $tempDir "$platform\setup.ps1"
-    if (Test-Path $setupScript) {
-        & $setupScript @args
-    } else {
-        Write-Host "Setup script not found for platform: $platform" -ForegroundColor Red
+    # Layout sanity check — confirms what we got actually looks like this repo
+    # before executing setup.ps1 from it.
+    $expectedPaths = @(
+        (Join-Path $tempDir "$platform\setup.ps1"),
+        (Join-Path $tempDir "$platform\lib"),
+        (Join-Path $tempDir "$platform\tools")
+    )
+    $missing = $expectedPaths | Where-Object { -not (Test-Path $_) }
+    if ($missing) {
+        Write-Host "Downloaded archive is missing expected paths:" -ForegroundColor Red
+        foreach ($m in $missing) { Write-Host "  $m" -ForegroundColor Red }
+        Write-Host "Refusing to execute — the archive does not look like darki73/developer." -ForegroundColor Red
         exit 1
     }
+
+    $setupScript = Join-Path $tempDir "$platform\setup.ps1"
+    & $setupScript @args
 } finally {
     # Cleanup — always remove the original temp dir (not the reassigned inner path)
     if (Test-Path $cleanupDir) {

@@ -1,4 +1,4 @@
-# windows/tools/pnpm.ps1
+﻿# windows/tools/pnpm.ps1
 # Installs pnpm — fast, disk space efficient package manager
 
 function Get-PnpmMetadata {
@@ -72,25 +72,10 @@ function Install-Pnpm {
 
 function Detect-Pnpm {
     param([string]$BaseDir)
-    # Check BaseDir
-    $pnpmExe = Join-Path $BaseDir "pnpm\pnpm.exe"
-    if (Test-Path $pnpmExe) {
-        try {
-            $result = (& $pnpmExe --version 2>&1).Trim()
-            return @{ Installed = $true; Version = $result }
-        } catch {}
-        return @{ Installed = $true; Version = $null }
-    }
-    # Check PATH
-    $onPath = Get-Command pnpm -ErrorAction SilentlyContinue
-    if ($onPath) {
-        try {
-            $result = (& pnpm --version 2>&1).Trim()
-            return @{ Installed = $true; Version = $result }
-        } catch {}
-        return @{ Installed = $true; Version = $null }
-    }
-    return @{ Installed = $false; Version = $null }
+    Resolve-InstalledTool `
+        -BasePath (Join-Path $BaseDir "pnpm\pnpm.exe") `
+        -CommandName "pnpm" `
+        -GetVersion { param($exe) (& $exe --version 2>&1) }
 }
 
 function Test-Pnpm {

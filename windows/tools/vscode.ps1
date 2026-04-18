@@ -1,4 +1,4 @@
-# windows/tools/vscode.ps1
+﻿# windows/tools/vscode.ps1
 # Installs Visual Studio Code with full shell integration
 
 function Get-VscodeMetadata {
@@ -80,25 +80,10 @@ function Install-Vscode {
 
 function Detect-Vscode {
     param([string]$BaseDir)
-    # Check BaseDir
-    $codeCmd = Join-Path $BaseDir "vscode\bin\code.cmd"
-    if (Test-Path $codeCmd) {
-        try {
-            $result = (& $codeCmd --version 2>&1 | Select-Object -First 1).Trim()
-            return @{ Installed = $true; Version = $result }
-        } catch {}
-        return @{ Installed = $true; Version = $null }
-    }
-    # Check PATH
-    $onPath = Get-Command code -ErrorAction SilentlyContinue
-    if ($onPath) {
-        try {
-            $result = (& code --version 2>&1 | Select-Object -First 1).Trim()
-            return @{ Installed = $true; Version = $result }
-        } catch {}
-        return @{ Installed = $true; Version = $null }
-    }
-    return @{ Installed = $false; Version = $null }
+    Resolve-InstalledTool `
+        -BasePath (Join-Path $BaseDir "vscode\bin\code.cmd") `
+        -CommandName "code" `
+        -GetVersion { param($exe) (& $exe --version 2>&1 | Select-Object -First 1) }
 }
 
 function Test-Vscode {

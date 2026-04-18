@@ -1,4 +1,4 @@
-# windows/tools/jetbrains-toolbox.ps1
+﻿# windows/tools/jetbrains-toolbox.ps1
 # Installs JetBrains Toolbox — a manager for JetBrains IDEs (IntelliJ, Rider, PyCharm, etc.)
 #
 # Toolbox installs itself to %LOCALAPPDATA%\JetBrains\Toolbox (not customizable at install time).
@@ -218,17 +218,10 @@ function Install-Jetbrains-toolbox {
 
 function Detect-Jetbrains-toolbox {
     param([string]$BaseDir)
-    # Check known install path
-    $toolboxExe = Join-Path $env:LOCALAPPDATA "JetBrains\Toolbox\bin\jetbrains-toolbox.exe"
-    if (Test-Path $toolboxExe) {
-        return @{ Installed = $true; Version = $null }
-    }
-    # Check PATH
-    $onPath = Get-Command jetbrains-toolbox -ErrorAction SilentlyContinue
-    if ($onPath) {
-        return @{ Installed = $true; Version = $null }
-    }
-    return @{ Installed = $false; Version = $null }
+    # Toolbox doesn't expose a CLI version flag we care about — just presence
+    Resolve-InstalledTool `
+        -BasePath (Join-Path $env:LOCALAPPDATA "JetBrains\Toolbox\bin\jetbrains-toolbox.exe") `
+        -CommandName "jetbrains-toolbox"
 }
 
 function Test-Jetbrains-toolbox {

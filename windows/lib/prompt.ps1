@@ -1,4 +1,4 @@
-# windows/lib/prompt.ps1
+﻿# windows/lib/prompt.ps1
 # Interactive TUI prompt primitives (arrow keys, checkboxes, selectors, text input)
 
 function Test-InteractiveConsole {

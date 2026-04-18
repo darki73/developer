@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Developer environment setup for Windows.
@@ -59,7 +59,8 @@ function Get-AvailableTools {
 
     foreach ($file in Get-ChildItem (Join-Path $ScriptRoot "tools") -Filter "*.ps1" | Sort-Object Name) {
         $toolName = $file.BaseName
-        $metadataFn = "Get-$($toolName.Substring(0,1).ToUpper() + $toolName.Substring(1))Metadata"
+        $fnSuffix = $toolName.Substring(0,1).ToUpper() + $toolName.Substring(1)
+        $metadataFn = "Get-${fnSuffix}Metadata"
 
         if (Get-Command $metadataFn -ErrorAction SilentlyContinue) {
             $meta = & $metadataFn
@@ -70,6 +71,17 @@ function Get-AvailableTools {
                 DependsOn   = if ($meta.DependsOn) { $meta.DependsOn } else { @() }
                 ScriptPath  = $file.FullName
             }
+
+            # Assert the rest of the contract — fail loudly at discovery, not mid-install
+            foreach ($verb in @("Install", "Detect", "Test")) {
+                $expected = "$verb-$fnSuffix"
+                if (-not (Get-Command $expected -ErrorAction SilentlyContinue)) {
+                    throw "Tool module '$($file.Name)' is missing required function '$expected'. See CONTRIBUTING.md for the naming contract."
+                }
+            }
+        }
+        else {
+            Write-Err "Tool module '$($file.Name)' has no '$metadataFn' function — skipping. See CONTRIBUTING.md for the naming contract."
         }
     }
 
@@ -326,6 +338,18 @@ if ($ConfigFile) {
 
 $baseDir = Normalize-Path $config.BaseDir
 $arch    = $config.Arch
+
+# Pre-flight: confirm we can write to the chosen install directory
+if (-not (Test-WritableDir $baseDir)) {
+    $isAdmin = Test-IsAdmin
+    Write-Err "Install directory is not writable: $baseDir"
+    if (-not $isAdmin) {
+        Write-Err "You are not running as Administrator. Either re-run this script in an elevated PowerShell, or pick an install directory under your user profile (e.g. `$env:USERPROFILE\dev)."
+    } else {
+        Write-Err "The directory exists but the current user cannot write to it. Check ACLs."
+    }
+    exit 1
+}
 
 # Determine which tools are enabled
 $enabledTools = @()
